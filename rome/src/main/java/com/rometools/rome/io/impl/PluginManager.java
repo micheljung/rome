@@ -16,6 +16,14 @@
  */
 package com.rometools.rome.io.impl;
 
+import com.rometools.rome.feed.impl.ConfigurableClassLoader;
+import com.rometools.rome.io.DelegatingModuleGenerator;
+import com.rometools.rome.io.DelegatingModuleParser;
+import com.rometools.rome.io.WireFeedGenerator;
+import com.rometools.rome.io.WireFeedParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,13 +32,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.rometools.rome.feed.impl.ConfigurableClassLoader;
-import com.rometools.rome.io.DelegatingModuleGenerator;
-import com.rometools.rome.io.DelegatingModuleParser;
-import com.rometools.rome.io.WireFeedGenerator;
-import com.rometools.rome.io.WireFeedParser;
-
 public abstract class PluginManager<T> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PluginManager.class);
+    private static final String ROME_PLUGINMANAGER_USELOADCLASS = "rome.pluginmanager.useloadclass";
 
     private final String[] propertyValues;
     private final List<String> keys;
@@ -150,7 +155,13 @@ public abstract class PluginManager<T> {
 
         final List<Class<T>> classes = new ArrayList<Class<T>>();
 
-        final boolean useLoadClass = Boolean.valueOf(System.getProperty("rome.pluginmanager.useloadclass", "false")).booleanValue();
+        boolean useLoadClass;
+        try {
+            useLoadClass = Boolean.valueOf(System.getProperty(ROME_PLUGINMANAGER_USELOADCLASS, "false"));
+        } catch (SecurityException e) {
+            LOG.warn("Security manager denies reading property: {}", ROME_PLUGINMANAGER_USELOADCLASS);
+            useLoadClass = false;
+        }
 
         for (final String propertyValue : propertyValues) {
             final Class<T> mClass;
